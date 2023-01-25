@@ -8,7 +8,7 @@ HANDLE port;        // Serial COM port
 BOOL loop = TRUE;   // Serial reader loop
 FILE *fo;           // CSV file writer
 
-void writeAndReadUntilEOL(HANDLE *port, char *request, DWORD request_size, char *response);    // Write to Serial and wait to response until \n
+void writeAndReadUntilEOL(HANDLE *port, char *request, DWORD request_size, char *response);     // Write to Serial and wait to response until \n
 void onSignal(int signal);                                                                      // Signal handler
 int main(int argc, char *argv[]);                                                               // App entry
 
