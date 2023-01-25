@@ -8,7 +8,7 @@ HANDLE port;        // Serial COM port
 BOOL loop = TRUE;   // Serial reader loop
 FILE *fo;           // CSV file writer
 
-void writeAndReadUntilEOL(HANDLE *port, char *request, size_t request_size, char *response);    // Write to Serial and wait to response until \n
+void writeAndReadUntilEOL(HANDLE *port, char *request, DWORD request_size, char *response);    // Write to Serial and wait to response until \n
 void onSignal(int signal);                                                                      // Signal handler
 int main(int argc, char *argv[]);                                                               // App entry
 
@@ -25,7 +25,7 @@ void onSignal(int signal)
 // Reading from serial buffer char by char
 void writeAndReadUntilEOL(HANDLE *port, char *request, DWORD request_size, char *response)
 {
-    LPDWORD sent = 0;
+    DWORD sent = 0;
     WriteFile(*port, request, request_size, &sent, NULL);
     if (sent == request_size)
     {
@@ -33,7 +33,7 @@ void writeAndReadUntilEOL(HANDLE *port, char *request, DWORD request_size, char 
         while (1) // Infinite loop, breaking manually
         {
             char buffer[2];
-            LPDWORD received = 0;
+            DWORD received = 0;
             ReadFile(*port, buffer, 1, &received, NULL);
             if (received == 1)
             {
