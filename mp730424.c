@@ -131,6 +131,7 @@ void writeAndReadUntilEOL(HANDLE *port, char *request, size_t request_size, char
                     break;
                 }
             }
+            else break;
         }
     }
 }
