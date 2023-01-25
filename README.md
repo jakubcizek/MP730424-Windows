@@ -1,5 +1,3 @@
-**
-
 ## Multicomp Pro MP730424 Win32 serial logger
 Simple Win32 console serial decoder of MP7300424 messages in SCPI format ([datasheet](https://www.farnell.com/datasheets/3205713.pdf))
 
