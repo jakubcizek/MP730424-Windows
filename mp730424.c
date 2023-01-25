@@ -8,8 +8,9 @@ HANDLE port;        // Serial COM port
 BOOL loop = TRUE;   // Serial reader loop
 FILE *fo;           // CSV file writer
 
-// Write to Serial and wait to response until \n
-void writeAndReadUntilEOL(HANDLE *port, char *request, size_t request_size, char *response);
+void writeAndReadUntilEOL(HANDLE *port, char *request, size_t request_size, char *response);    // Write to Serial and wait to response until \n
+void onSignal(int signal);                                                                      // Signal handler
+int main(int argc, char *argv[]);                                                               // App entry
 
 // Signal handler
 void onSignal(int signal)
@@ -20,16 +21,49 @@ void onSignal(int signal)
     }
 }
 
-// App main
+// Write query to Serial COM and wait for response until \n, or timeout
+// Reading from serial buffer char by char
+void writeAndReadUntilEOL(HANDLE *port, char *request, DWORD request_size, char *response)
+{
+    LPDWORD sent = 0;
+    WriteFile(*port, request, request_size, &sent, NULL);
+    if (sent == request_size)
+    {
+        size_t pos = 0;
+        while (1) // Infinite loop, breaking manually
+        {
+            char buffer[2];
+            LPDWORD received = 0;
+            ReadFile(*port, buffer, 1, &received, NULL);
+            if (received == 1)
+            {
+                if ((int)buffer[0] != 10) // If not LF (\n)
+                {
+                    if ((int)buffer[0] != 13) // If not CR (\r)
+                        response[pos++] = buffer[0];
+                }
+                else
+                {
+                    response[pos] = '\0'; // Close string and break while loop
+                    break;
+                }
+            }
+            else    // If we did not received just 1 char, let's break while loop
+                break;
+        }
+    }
+}
+
+// App entry
 int main(int argc, char *argv[])
 {
-    char portName[20] = "COM1";         // Default COM port
-    DWORD portSpeed = 115200;           // Default COM baudrate
-    DWORD delayMs = 500;                // Default multimeter querying delay
-    char fileName[50] = "zaznam.csv";   // Default filename
-    BOOL writing = FALSE;               // Logging to CSV file disabled by default
+    char portName[20] = "COM1";             // Default COM port
+    DWORD portSpeed = 115200;               // Default COM baudrate
+    DWORD delayMs = 500;                    // Default multimeter querying delay
+    char fileName[50] = "measurements.csv"; // Default filename
+    BOOL writing = FALSE;                   // Logging to CSV file disabled by default
 
-    signal(SIGINT, onSignal);           // SIGINT registration
+    signal(SIGINT, onSignal);               // SIGINT registration
 
     /**
      * Stupid argv parser
@@ -63,7 +97,7 @@ int main(int argc, char *argv[])
                        NULL);                        // Null for Comm Devices
 
     if (port == INVALID_HANDLE_VALUE)
-        printf("Nelze otevrit port %s\r\n", portName);
+        printf("Can not open %s\r\n", portName);
     else
     {
         FlushFileBuffers(port); // Flushing port buffers
@@ -88,7 +122,7 @@ int main(int argc, char *argv[])
 
         char response[100]; // Response buffer
         
-        // Ask multimeter for its ID
+        // Ask multimeter for its ID via "*IDN?\n" query
         writeAndReadUntilEOL(&port, "*IDN?\n", 6, response);
         printf("%s\r\n", response);
 
@@ -107,60 +141,27 @@ int main(int argc, char *argv[])
             char dt[13];
             sprintf(dt, "%02d:%02d:%02d.%03d", t.wHour, t.wMinute, t.wSecond, t.wMilliseconds);
 
-            // Ask multimeter for its current mode/function
+            // Ask multimeter for its current function via "FUNC?\n" query
             writeAndReadUntilEOL(&port, "FUNC?\n", 6, response);
             printf("%s\t %s\t", dt, response);
             if (writing)
                 fprintf(fo, "%s;%s;", dt, response);
 
-            // Ask multimeter for its current value/measurement   
+            // Ask multimeter for its current measurement via "MEAS?\n" query
             writeAndReadUntilEOL(&port, "MEAS?\n", 6, response);
             double number = atof(response);
             printf("%f\r\n", number);
             if (writing)
                 fprintf(fo, "%f\n", number);
             
-            Sleep(delayMs); // Quering delay
+            Sleep(delayMs); // Next query delay
         }
 
         if (writing)
             fclose(fo);
     }
 
-    CloseHandle(port);  // Closed COM port
+    CloseHandle(port);  // Close COM port
 
-    return 0;
-}
-
-//Write to Serial COM and wait for response until \n, or timeout
-// Reading from serial buffer char by char
-void writeAndReadUntilEOL(HANDLE *port, char *request, size_t request_size, char *response)
-{
-    int sent = 0;
-    WriteFile(*port, request, request_size, &sent, NULL);
-    if (sent == request_size)
-    {
-        size_t pos = 0;
-        while (1) // Infinite loop, breaking manually
-        {
-            char buffer[2];
-            int received = 0;
-            ReadFile(*port, buffer, 1, &received, NULL);
-            if (received == 1)
-            {
-                if ((int)buffer[0] != 10) // If not \n
-                {
-                    if ((int)buffer[0] != 13) // If not \r
-                        response[pos++] = buffer[0];
-                }
-                else
-                {
-                    response[pos] = '\0'; // End string and break while loop
-                    break;
-                }
-            }
-            else    // If not received 1 char, break while loop
-                break;
-        }
-    }
+    return 0; // Bye bye!
 }
