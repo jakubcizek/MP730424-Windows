@@ -9,7 +9,7 @@ Simple Win32 console serial decoder of MP730424 messages in SCPI format ([datash
 
     mp730424.exe -p COM8 -s 115200 -d 1000 -f measurements.csv
 
-With this setup, program will query multimeter every 1000 ms for current mode and measurement. It will print data with timestamp to stdout and to measurements.csv text file.
+With this setup, program will query multimeter every 1000 ms for current function and measurement. It will print data with HH:MM:SS.ms timestamp to stdout and to measurements.csv text file.
 
 ![mp730424.exe in action](https://raw.githubusercontent.com/jakubcizek/MP730424-Windows/main/screenshot.png)
 
