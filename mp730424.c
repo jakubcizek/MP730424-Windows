@@ -4,12 +4,14 @@
 #include <stdint.h>
 #include <signal.h>
 
-HANDLE port;
-BOOL loop = TRUE;
-FILE *fo;
+HANDLE port;        // Serial COM port
+BOOL loop = TRUE;   // Serial reader loop
+FILE *fo;           // CSV file writer
 
+// Write to Serial and wait to response until \n
 void writeAndReadUntilEOL(HANDLE *port, char *request, size_t request_size, char *response);
 
+// Signal handler
 void onSignal(int signal)
 {
     if (signal == SIGINT)
@@ -18,22 +20,30 @@ void onSignal(int signal)
     }
 }
 
+// App main
 int main(int argc, char *argv[])
 {
-    char COM_NAME[20] = "COM1";
-    DWORD COM_SPEED = 115200;
-    DWORD delayMs = 500;
-    char fileName[50] = "zaznam.csv";
-    BOOL writing = FALSE;
+    char portName[20] = "COM1";         // Default COM port
+    DWORD portSpeed = 115200;           // Default COM baudrate
+    DWORD delayMs = 500;                // Default multimeter querying delay
+    char fileName[50] = "zaznam.csv";   // Default filename
+    BOOL writing = FALSE;               // Logging to CSV file disabled by default
 
-    signal(SIGINT, onSignal);
+    signal(SIGINT, onSignal);           // SIGINT registration
 
+    /**
+     * Stupid argv parser
+     * -p port, COM1, COM2, ...
+     * -s baudrate, 9600, 115200, ...
+     * -d multimeter querying delay in ms
+     * -f CSV filename for logging
+     */
     for (int i = 1; i < argc; i++)
     {
         if (strcmp(argv[i], "-p") == 0)
-            sprintf(COM_NAME, "\\\\.\\%s", argv[i + 1]);
+            sprintf(portName, "\\\\.\\%s", argv[i + 1]);
         if (strcmp(argv[i], "-s") == 0)
-            COM_SPEED = atoll(argv[i + 1]);
+            portSpeed = atoll(argv[i + 1]);
         if (strcmp(argv[i], "-d") == 0)
             delayMs = atoll(argv[i + 1]);
         if (strcmp(argv[i], "-f") == 0)
@@ -43,7 +53,8 @@ int main(int argc, char *argv[])
         }
     }
 
-    port = CreateFileA(COM_NAME,                     // port name
+    // Openning COM port
+    port = CreateFileA(portName,                     // port name
                        GENERIC_READ | GENERIC_WRITE, // Read/Write
                        0,                            // No Sharing
                        NULL,                         // No Security
@@ -52,11 +63,12 @@ int main(int argc, char *argv[])
                        NULL);                        // Null for Comm Devices
 
     if (port == INVALID_HANDLE_VALUE)
-        printf("Nelze otevrit port %s\r\n", COM_NAME);
+        printf("Nelze otevrit port %s\r\n", portName);
     else
     {
-        FlushFileBuffers(port);
+        FlushFileBuffers(port); // Flushing port buffers
 
+        // Port timeouts in ms
         COMMTIMEOUTS timeouts = {0};
         timeouts.ReadIntervalTimeout = 0;
         timeouts.ReadTotalTimeoutConstant = 100;
@@ -65,47 +77,63 @@ int main(int argc, char *argv[])
         timeouts.WriteTotalTimeoutMultiplier = 0;
         SetCommTimeouts(port, &timeouts);
 
+        // Serial setup
         DCB state = {0};
         state.DCBlength = sizeof(DCB);
-        state.BaudRate = COM_SPEED;
+        state.BaudRate = portSpeed;
         state.ByteSize = 8;
         state.Parity = NOPARITY;
         state.StopBits = ONESTOPBIT;
         SetCommState(port, &state);
 
-        char response[512];
-
+        char response[100]; // Response buffer
+        
+        // Ask multimeter for its ID
         writeAndReadUntilEOL(&port, "*IDN?\n", 6, response);
-        printf("Detekce multimetru: %s\r\n", response);
+        printf("%s\r\n", response);
 
-        if(writing){
+        // Open file for CSV logging
+        if (writing)
+        {
             fo = fopen(fileName, "w");
         }
 
+        // Querying loop
         while (loop)
         {
+            // Get current time in hh:mm:ss.ms
             SYSTEMTIME t;
             GetLocalTime(&t);
             char dt[13];
             sprintf(dt, "%02d:%02d:%02d.%03d", t.wHour, t.wMinute, t.wSecond, t.wMilliseconds);
+
+            // Ask multimeter for its current mode/function
             writeAndReadUntilEOL(&port, "FUNC?\n", 6, response);
             printf("%s\t %s\t", dt, response);
-            if(writing) fprintf(fo, "%s;%s;", dt, response);
+            if (writing)
+                fprintf(fo, "%s;%s;", dt, response);
+
+            // Ask multimeter for its current value/measurement   
             writeAndReadUntilEOL(&port, "MEAS?\n", 6, response);
             double number = atof(response);
             printf("%f\r\n", number);
-            if(writing) fprintf(fo,"%f\n", number);
-            Sleep(delayMs);
+            if (writing)
+                fprintf(fo, "%f\n", number);
+            
+            Sleep(delayMs); // Quering delay
         }
 
-        if(writing) fclose(fo);
+        if (writing)
+            fclose(fo);
     }
 
-    CloseHandle(port);
+    CloseHandle(port);  // Closed COM port
 
     return 0;
 }
 
+//Write to Serial COM and wait for response until \n, or timeout
+// Reading from serial buffer char by char
 void writeAndReadUntilEOL(HANDLE *port, char *request, size_t request_size, char *response)
 {
     int sent = 0;
@@ -113,25 +141,26 @@ void writeAndReadUntilEOL(HANDLE *port, char *request, size_t request_size, char
     if (sent == request_size)
     {
         size_t pos = 0;
-        while (1)
+        while (1) // Infinite loop, breaking manually
         {
             char buffer[2];
-            int received;
+            int received = 0;
             ReadFile(*port, buffer, 1, &received, NULL);
             if (received == 1)
             {
-                if ((int)buffer[0] != 10)
+                if ((int)buffer[0] != 10) // If not \n
                 {
-                    if ((int)buffer[0] != 13)
+                    if ((int)buffer[0] != 13) // If not \r
                         response[pos++] = buffer[0];
                 }
                 else
                 {
-                    response[pos] = '\0';
+                    response[pos] = '\0'; // End string and break while loop
                     break;
                 }
             }
-            else break;
+            else    // If not received 1 char, break while loop
+                break;
         }
     }
 }
