@@ -18,9 +18,10 @@ char portPath[100] = "\\.\\COM1";       // Default COM port path
 DWORD portSpeed = 115200;               // Default COM baudrate
 DWORD timerDelayMs = 500;               // Default multimeter querying delay
 
-void writeAndReadUntilEOL(HANDLE *port, char *request, DWORD request_size, char *response);    // Write to Serial and wait to response until \n
-void onSignal(int signal);                                                                      // Signal handler
-int main(int argc, char *argv[]);                                                               // App entry
+void requestData(HANDLE *port, char *request, DWORD request_size, char *response);    // Write to Serial and wait to response until \n
+void CALLBACK requestLoop(HWND hwnd, UINT msg, UINT timer, DWORD time);               // Request timer callback
+void onSignal(int signal);                                                            // SIGINT callback, cleaning and exit(0)
+int main(int argc, char *argv[]);                                                     // App entry
 
 // Signal handler
 void onSignal(int signal)
