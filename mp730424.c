@@ -187,7 +187,7 @@ int main(int argc, char *argv[])
         timeouts.ReadTotalTimeoutMultiplier = 0;
         timeouts.WriteTotalTimeoutConstant = 100;
         timeouts.WriteTotalTimeoutMultiplier = 0;
-        printf("Configuring port timers... ");
+        printf("Configuring port timeouts... ");
         if (SetCommTimeouts(port, &timeouts))
         {
             printf("OK\r\n");
