@@ -6,7 +6,7 @@
 			"label": "C/C++: cl.exe build active file",
 			"command": "cl.exe",
 			"args": [
-				"/Zi",
+				"/O1",
 				"/EHsc",
 				"/nologo",
 				"/Fe${fileDirname}\\${fileBasenameNoExtension}.exe",
