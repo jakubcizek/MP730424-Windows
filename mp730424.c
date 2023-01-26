@@ -167,8 +167,8 @@ int main(int argc, char *argv[])
         }
     }
 
-    // Openning COM port
-    printf("Openning port %s... ", portName);
+    // Opening COM port
+    printf("Opening port %s... ", portName);
     port = CreateFileA(portPath,                     // port path
                        GENERIC_READ | GENERIC_WRITE, // Read/Write
                        0,                            // No Sharing
@@ -242,7 +242,7 @@ int main(int argc, char *argv[])
         // Open file for CSV logging
         if (fileLogging)
         {
-            printf("Openning %s for logging... ", fileName);
+            printf("Opening %s for logging... ", fileName);
             fo = fopen(fileName, "w");
             if (fo != NULL)
             {
