@@ -11,6 +11,8 @@ Simple Win32 console serial decoder of MP730424 messages in SCPI format ([datash
 
 With this setup, program will periodically request multimeter data every 1000 ms for current function and measurement. It will print data with HH:MM:SS.ms timestamp to stdout and measurements.csv semicolon-separated text file.
 
+Still some small r/w sync bugs if you switch function on multimeter during recording. Do not switch functions during session ;-) 
+
 ![mp730424.exe in action](https://raw.githubusercontent.com/jakubcizek/MP730424-Windows/main/screenshot.png)
 
 ![enter image description here](https://raw.githubusercontent.com/jakubcizek/MP730424-Windows/main/multimeter.jpg)
