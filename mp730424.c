@@ -115,8 +115,9 @@ void CALLBACK requestLoop(HWND hwnd, UINT msg, UINT timer, DWORD time)
     requestData(&port, "FUNC?\n", 6, response);
 
     // Function name is encapsulated by "", so if we can not see " in response,
-    // there is probably some sync/sequence issue (manually switching mode during data requesting? Too fast requesting?)
+    // there is probably some timing/sequence issue (Manually switching mode during data requesting? Too fast requesting?)
     // In that case, we jump to the end of the this cycle and flush port buffers
+    // You can try increase port timeouts in main()
     if (strstr(response, "\"") == NULL)
         goto FLUSH;
 
