@@ -134,7 +134,7 @@ int main(int argc, char *argv[])
      * Stupid argv parser
      * -p port, COM1, COM2, ...
      * -b baudrate, 9600, 115200, ...
-     * -s multimeter querying speed in ms
+     * -s multimeter requesting speed/delay in ms
      * -f CSV filename for logging
      */
     for (int i = 1; i < argc; i++)
