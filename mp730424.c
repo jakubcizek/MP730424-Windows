@@ -113,16 +113,26 @@ void CALLBACK requestLoop(HWND hwnd, UINT msg, UINT timer, DWORD time)
     // Ask multimeter for its current function via "FUNC?\n" query
     char response[50];
     requestData(&port, "FUNC?\n", 6, response);
-    printf("%s\t %s\t", dt, response);
+
+    // Function name is encapsulated by "", so if we can not see " in response,
+    // there is probably some sync/sequence issue (manually switching mode during data requesting? Too fast requesting?)
+    // In that case, we jump to the end of the this cycle and flush port buffers
+    if (strstr(response, "\"") == NULL)
+        goto FLUSH;
+
+    printf("%s%10s", dt, response);
     if (fileLogging)
         fprintf(fo, "%s;%s;", dt, response);
 
     // Ask multimeter for its current measurement via "MEAS?\n" query
     requestData(&port, "MEAS?\n", 6, response);
     double number = atof(response);
-    printf("%f\r\n", number);
+    printf("\t%.10f\r\n", number, response);
     if (fileLogging)
-        fprintf(fo, "%f\n", number);
+        fprintf(fo, "%s\n", response);
+
+FLUSH:
+    FlushFileBuffers(port);
 }
 
 // App entry
@@ -185,9 +195,9 @@ int main(int argc, char *argv[])
         // Port timeouts in ms
         COMMTIMEOUTS timeouts = {0};
         timeouts.ReadIntervalTimeout = 0;
-        timeouts.ReadTotalTimeoutConstant = 100;
+        timeouts.ReadTotalTimeoutConstant = 500;
         timeouts.ReadTotalTimeoutMultiplier = 0;
-        timeouts.WriteTotalTimeoutConstant = 100;
+        timeouts.WriteTotalTimeoutConstant = 500;
         timeouts.WriteTotalTimeoutMultiplier = 0;
         printf("Configuring port timeouts... ");
         if (SetCommTimeouts(port, &timeouts))
